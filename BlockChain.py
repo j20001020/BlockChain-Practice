@@ -1,3 +1,4 @@
+import pickle
 import socket
 import sys
 import threading
@@ -33,6 +34,7 @@ class BlockChain:
         self.block_limitation = 32
         self.chain = []
         self.pending_transactions = []
+
         # For P2P connection
         self.socket_host = "220.133.21.187"
         self.socket_port = int(sys.argv[1])
@@ -197,32 +199,16 @@ class BlockChain:
         public_key_pkcs = rsa.PublicKey.load_pkcs1(public_key.encode("utf-8"))
         transaction_str = self.transaction_to_string(transaction)
         if transaction.fee + transaction.amounts > self.get_balance(transaction.sender):
-            print("Balance not enough!")
-            return False
+            return False, "Balance not enough!"
         try:
             # 驗證發送者
             rsa.verify(transaction_str.encode("utf-8"), signature, public_key_pkcs)
-            print("Authorized successfully!")
             self.pending_transactions.append(transaction)
-            return True
+            return True, "Authorized successfully!"
         except Exception:
-            print("RSA Verified wrong!")
+            return False, "RSA Verified wrong!"
 
-    def start(self):
-        address, private = self.generate_address()
-        self.create_genesis_block()
-        while(True):
-            # Step1: initialize a transaction
-            transaction = blockchain.initialize_transaction(address, 'KAI', 1, 1, 'Test')
-            if transaction:
-                # Step2: Sign your transaction
-                signature = blockchain.sign_transaction(transaction, private)
-                # Step3: Send it to blockchain
-                blockchain.add_transaction(transaction, signature)
-            self.mine_block(address)
-            print(self.get_balance(address))
-            self.adjust_difficulty()
-
+    # 開thread監聽新連線與傳入訊息
     def start_socket_server(self):
         t = threading.Thread(target=self.wait_for_socket_connection)
         t.start()
@@ -232,15 +218,73 @@ class BlockChain:
             s.bind((self.socket_host, self.socket_port))
             s.listen()
             while True:
-                conn, address = s.accept()
+                client, address = s.accept()
 
                 client_handler = threading.Thread(
                     target=self.receive_socket_message,
-                    args=(conn, address)
+                    args=(client, address)
                 )
                 client_handler.start()
 
+    # 接收訊息後處理
     def receive_socket_message(self, connection, address):
+        with connection:
+            print(f"Connected by: {address}")
+            while True:
+                message = connection.recv(1024)
+                print(f"[*] Received: {message}")
+                try:
+                    parsed_message = pickle.loads(message)
+                except Exception:
+                    print(f"{message} cannot be parsed")
+                if message:
+                    if parsed_message["request"] == "get_balance":
+                        print("Start to get the balance for client...")
+                        address = parsed_message["address"]
+                        balance = self.get_balance(address)
+                        response = {
+                            "address": address,
+                            "balance": balance
+                        }
+                    elif parsed_message["request"] == "transaction":
+                        print("Start to transaction for client...")
+                        new_transaction = parsed_message["data"]
+                        result, result_message = self.add_transaction(
+                            new_transaction,
+                            parsed_message["signature"]
+                        )
+                        response = {
+                            "result": result,
+                            "result_message": result_message
+                        }
+                    else:
+                        response = {
+                            "message": "Unknown command."
+                        }
+                    response_bytes = str(response).encode("utf-8")
+                    connection.sendall(response_bytes)
+
+    def start(self):
+        address, private = self.generate_address()
+
+        print(f"Miner address: {address}")
+        print(f"Miner private: {private}")
+        self.create_genesis_block()
+        while True:
+            self.mine_block(address)
+            self.adjust_difficulty()
+        # self.create_genesis_block()
+        # while(True):
+        #     # Step1: initialize a transaction
+        #     transaction = blockchain.initialize_transaction(address, 'KAI', 1, 1, 'Test')
+        #     if transaction:
+        #         # Step2: Sign your transaction
+        #         signature = blockchain.sign_transaction(transaction, private)
+        #         # Step3: Send it to blockchain
+        #         blockchain.add_transaction(transaction, signature)
+        #     self.mine_block(address)
+        #     print(self.get_balance(address))
+        #     self.adjust_difficulty()
 
 if __name__ == '__main__':
     blockchain = BlockChain()
