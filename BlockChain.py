@@ -1,3 +1,6 @@
+import socket
+import sys
+import threading
 import time
 import hashlib
 import rsa
@@ -30,6 +33,10 @@ class BlockChain:
         self.block_limitation = 32
         self.chain = []
         self.pending_transactions = []
+        # For P2P connection
+        self.socket_host = "220.133.21.187"
+        self.socket_port = int(sys.argv[1])
+        self.start_socket_server()
 
     # 產生創世塊(genesis block)
     def create_genesis_block(self):
@@ -215,6 +222,25 @@ class BlockChain:
             self.mine_block(address)
             print(self.get_balance(address))
             self.adjust_difficulty()
+
+    def start_socket_server(self):
+        t = threading.Thread(target=self.wait_for_socket_connection)
+        t.start()
+
+    def wait_for_socket_connection(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((self.socket_host, self.socket_port))
+            s.listen()
+            while True:
+                conn, address = s.accept()
+
+                client_handler = threading.Thread(
+                    target=self.receive_socket_message,
+                    args=(conn, address)
+                )
+                client_handler.start()
+
+    def receive_socket_message(self, connection, address):
 
 if __name__ == '__main__':
     blockchain = BlockChain()
