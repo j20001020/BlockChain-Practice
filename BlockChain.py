@@ -36,7 +36,7 @@ class BlockChain:
         self.pending_transactions = []
 
         # For P2P connection
-        self.socket_host = "220.133.21.187"
+        self.socket_host = "192.168.197.1"
         self.socket_port = int(sys.argv[1])
         self.start_socket_server()
 
@@ -218,11 +218,11 @@ class BlockChain:
             s.bind((self.socket_host, self.socket_port))
             s.listen()
             while True:
-                client, address = s.accept()
+                connection, address = s.accept()
 
                 client_handler = threading.Thread(
                     target=self.receive_socket_message,
-                    args=(client, address)
+                    args=(connection, address)
                 )
                 client_handler.start()
 
