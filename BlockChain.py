@@ -248,7 +248,7 @@ class BlockChain:
                         }
                     elif parsed_message["request"] == "transaction":
                         print("Start to transaction for client...")
-                        new_transaction = parsed_message["data"]
+                        new_transaction = parsed_message["transaction"]
                         result, result_message = self.add_transaction(
                             new_transaction,
                             parsed_message["signature"]

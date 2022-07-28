@@ -1,6 +1,8 @@
+import pickle
 import socket
 import sys
 import threading
+import time
 import rsa
 
 class Transaction:
@@ -73,3 +75,54 @@ if __name__ == '__main__':
 
     receive_handler = threading.Thread(target=handle_receive)
     receive_handler.start()
+
+    # client流程
+    # 1.產生地址與公私鑰
+    # 2.向節點詢問帳戶的餘額
+    # 3.發起並簽署交易後送到節點端等待礦工確認與上鏈
+    command_dict = {
+        "1": "generate_address",
+        "2": "get_balance",
+        "3": "transaction"
+    }
+
+    while True:
+        print("Command list: ")
+        print("1. Generate Address")
+        print("2. Get Balance")
+        print("3. Transaction")
+        command = input("Command: ")
+
+        if str(command) not in command_dict.keys():
+            print("Unknown command.")
+            continue
+
+        message = {
+            "request": command_dict[str(command)]
+        }
+
+        if message["request"] == "generate_address":
+            address, private_key = generate_address()
+            print(f"Address: {address}")
+            print(f"Private key {private_key}:")
+        elif message["request"] == "get_balance":
+            address = input("Address: ")
+            message["address"] = address
+            client.send(pickle.dumps(message))
+        elif message["request"] == "transaction":
+            address = input("Address: ")
+            private_key = input("Private_key: ")
+            receiver = input("Receiver: ")
+            amounts = input("Amounts: ")
+            fee = input("Fee: ")
+            remark = input("Remark: ")
+            new_transaction = initialize_transaction(address, receiver, int(amounts), int(fee), remark)
+            signature = sign_transaction(new_transaction, private_key)
+            message["transaction"] = new_transaction
+            message["signature"] = signature
+
+            client.send(pickle.dumps(message))
+
+        else:
+            print("Unknown command.")
+        time.sleep(1)
