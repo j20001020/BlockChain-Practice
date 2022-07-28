@@ -375,7 +375,7 @@ class BlockChain:
                 client.close()
 
 
-    def start(self):
+    def Run(self):
         address, private = self.generate_address()
 
         print(f"Miner address: {address}")
@@ -388,4 +388,4 @@ class BlockChain:
 
 if __name__ == '__main__':
     blockchain = BlockChain()
-    blockchain.start()
+    blockchain.Run()
