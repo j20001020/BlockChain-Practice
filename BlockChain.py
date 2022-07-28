@@ -4,6 +4,7 @@ import sys
 import threading
 import time
 import hashlib
+
 import rsa
 
 class Transaction:
@@ -263,6 +264,11 @@ class BlockChain:
                         }
                     response_bytes = str(response).encode("utf-8")
                     connection.sendall(response_bytes)
+
+    # def clone_blockchain(self, address):
+    #     print(f"Start to clone blockchain by {address}")
+    #     target_host = address.split(":")[0]
+    #     target_port =
 
     def start(self):
         address, private = self.generate_address()

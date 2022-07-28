@@ -8,7 +8,7 @@ import rsa
 class Transaction:
     def __init__(self, sender, receiver, amounts, fee, message):
         self.sender = sender
-        self.receiver - receiver
+        self.receiver = receiver
         self.amounts = amounts
         self.fee = fee
         self.message = message
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         if message["request"] == "generate_address":
             address, private_key = generate_address()
             print(f"Address: {address}")
-            print(f"Private key {private_key}:")
+            print(f"Private key: {private_key}")
         elif message["request"] == "get_balance":
             address = input("Address: ")
             message["address"] = address
