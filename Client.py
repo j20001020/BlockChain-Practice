@@ -68,7 +68,7 @@ def extract_from_private(private):
     return private_key
 
 if __name__ == '__main__':
-    target_host = socket.gethostbyname(socket.gethostname)
+    target_host = socket.gethostbyname(socket.gethostname())
     target_port = int(sys.argv[1])
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((target_host, target_port))

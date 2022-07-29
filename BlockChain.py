@@ -37,7 +37,7 @@ class BlockChain:
         self.pending_transactions = []
 
         # For P2P connection
-        self.socket_host = socket.gethostbyname(socket.gethostname)
+        self.socket_host = socket.gethostbyname(socket.gethostname())
         self.socket_port = int(sys.argv[1])
         self.node_address = {f"{self.socket_host}:{self.socket_port}"}
         self.connection_node = {}
