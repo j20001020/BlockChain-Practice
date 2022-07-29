@@ -56,6 +56,14 @@ class BlockChain:
         new_block.hash = self.get_hash(new_block, 0)
         self.chain.append(new_block)
 
+    # 初始化新交易
+    def initialize_transaction(self, sender, receiver, amount, fee, message):
+        if self.get_balance(sender) < amount + fee:
+            print("Balance not enough!")
+            return False
+        new_transaction = Transaction(sender, receiver, amount, fee, message)
+        return new_transaction
+
     # 把交易明細轉換成字串
     def transaction_to_string(self, transaction):
         transaction_dict = {
@@ -146,7 +154,7 @@ class BlockChain:
 
     # 計算帳戶餘額
     def get_balance(self, account):
-        balance = 100
+        balance = 0
         for block in self.chain:
             # Check miner reward
             miner = False
@@ -182,7 +190,7 @@ class BlockChain:
         public, private = rsa.newkeys(512)
         public_key = public.save_pkcs1()
         private_key = private.save_pkcs1()
-        return self.get_address_from_public(public_key), private_key
+        return self.get_address_from_public(public_key), self.extract_from_private(private_key)
 
     def get_address_from_public(self, public):
         address = str(public).replace('\\n','')
@@ -192,13 +200,12 @@ class BlockChain:
         print('Address: ', address)
         return address
 
-    # 初始化新交易
-    def initialize_transaction(self, sender, receiver, amount, fee, message):
-        if self.get_balance(sender) < amount + fee:
-            print("Balance not enough!")
-            return False
-        new_transaction = Transaction(sender, receiver, amount, fee, message)
-        return new_transaction
+    def extract_from_private(self, private):
+        private_key = str(private).replace('\\n', '')
+        private_key = private_key.replace("b'-----BEGIN RSA PRIVATE KEY-----", '')
+        private_key = private_key.replace("-----END RSA PRIVATE KEY-----'", '')
+        private_key = private_key.replace(' ', '')
+        return private_key
 
     # 使用私鑰簽署交易
     def sign_transaction(self, transaction, private_key):
@@ -245,10 +252,14 @@ class BlockChain:
     # 接收訊息後處理
     def receive_socket_message(self, connection, address):
         with connection:
-            print(f"Connected by: {address}")
+            # print(f"Connected by: {address}")
+            address_concat = address[0] + ":" + str(address[1])
             while True:
-                message = connection.recv(1024)
-                print(f"[*] Received: {message}")
+                message = b""
+                while True:
+                    message += connection.recv(4096)
+                    if len(message) % 4096:
+                        break
                 try:
                     parsed_message = pickle.loads(message)
                 except Exception:
@@ -347,7 +358,7 @@ class BlockChain:
             return False
         else:
             if block_data.hash[0: self.difficulty] == '0' * self.difficulty:
-                for transaction in block_data.transaction:
+                for transaction in block_data.transactions:
                     self.pending_transactions.remove(transaction)
                 self.receive_verified_block = True
                 self.chain.append(block_data)
@@ -358,6 +369,9 @@ class BlockChain:
 
     def broadcast_block(self, new_block):
         self.broadcast_message_to_nodes("broadcast_block", new_block)
+
+    def broadcast_transaction(self, new_transaction):
+        self.broadcast_message_to_nodes("broadcast_transaction", new_transaction)
 
     def broadcast_message_to_nodes(self, request, data=None):
         address_concat = self.socket_host + ":" + str(self.socket_port)
